@@ -1,18 +1,24 @@
 import prisma from "../../config/db.js"
+import { config } from "../../config/index.js"
 import type { Prisma, User } from "../../generated/prisma/index.js"
-
-const createUser = async (payload: Prisma.UserCreateInput): Promise<User> => {
-    const result = await prisma.user.create({ data: payload })
+import bcrypt from "bcrypt"
+const createUser = async (payload: Prisma.UserCreateInput): Promise<(Omit<User, 'password'>)> => {
+    payload.password && (payload.password = await bcrypt.hash(payload.password, Number(config.sald_round)))
+    const result = await prisma.user.create({ data: payload, omit: {password: true} })
     return result
 }
 
 const getAllUser = async () => {
     const result = await prisma.user.findMany({
+        include: {
+            post: {
+                select: {
+                    title: true
+                }
+            },
+        },
         omit: {
             password: true
-        },
-        include: {
-            post: true
         },
         orderBy: {
             createdAt: "desc"
